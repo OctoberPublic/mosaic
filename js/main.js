@@ -13,7 +13,7 @@ const el = {
   board: $('board'),
   loading: $('loading'), loadingText: $('loadingText'),
   clear: $('clear'), clearInfo: $('clearInfo'), nextBtn: $('nextBtn'),
-  toolFill: $('toolFill'), toolCross: $('toolCross'), panBtn: $('panBtn'),
+  toolFill: $('toolFill'), toolCross: $('toolCross'),
   undoBtn: $('undoBtn'), redoBtn: $('redoBtn'), hintBtn: $('hintBtn'),
   zoomOutBtn: $('zoomOutBtn'), zoomInBtn: $('zoomInBtn'), fitBtn: $('fitBtn'),
   menu: $('menu'), diffOptions: $('diffOptions'),
@@ -129,17 +129,30 @@ setInterval(() => {
   updateTimer();
 }, 1000);
 
-// ---- ツール ----
-function setTool(t) {
-  game.setTool(t);
-  el.toolFill.classList.toggle('active', t === 'fill');
-  el.toolCross.classList.toggle('active', t === 'cross');
-  settings.tool = t; store.saveSettings(settings);
-  if (renderer.panMode) setPan(false);
+// ---- ツール(押している間だけ塗る/印。離すと盤面移動) ----
+const held = new Set();
+function refreshToolButtons() {
+  el.toolFill.classList.toggle('active', held.has('fill'));
+  el.toolCross.classList.toggle('active', held.has('cross'));
 }
-function setPan(on) {
-  renderer.setPanMode(on);
-  el.panBtn.classList.toggle('active', on);
+function pressTool(tool, e, btn) {
+  e.preventDefault();
+  held.add(tool);
+  renderer.setActiveTool(tool);
+  refreshToolButtons();
+  try { btn.setPointerCapture(e.pointerId); } catch (_) {}
+}
+function releaseTool(tool) {
+  if (!held.has(tool)) return;
+  held.delete(tool);
+  renderer.setActiveTool(held.size ? [...held][held.size - 1] : null);
+  refreshToolButtons();
+}
+function bindHold(btn, tool) {
+  btn.addEventListener('pointerdown', (e) => pressTool(tool, e, btn));
+  btn.addEventListener('pointerup', () => releaseTool(tool));
+  btn.addEventListener('pointercancel', () => releaseTool(tool));
+  btn.addEventListener('lostpointercapture', () => releaseTool(tool));
 }
 
 // ---- モーダル ----
@@ -177,9 +190,8 @@ function openStats() {
 }
 
 // ---- イベント配線 ----
-el.toolFill.addEventListener('click', () => setTool('fill'));
-el.toolCross.addEventListener('click', () => setTool('cross'));
-el.panBtn.addEventListener('click', () => setPan(!renderer.panMode));
+bindHold(el.toolFill, 'fill');
+bindHold(el.toolCross, 'cross');
 el.undoBtn.addEventListener('click', () => game.undo());
 el.redoBtn.addEventListener('click', () => game.redo());
 el.hintBtn.addEventListener('click', () => {
@@ -222,7 +234,8 @@ window.addEventListener('pagehide', saveNow);
 
 // ---- 初期化 ----
 function init() {
-  setTool(settings.tool || 'fill');
+  game.setTool('fill'); // 塗りは fill 固定。×印は長押し時に useCross で指定。
+  refreshToolButtons();
   const saved = store.loadGame();
   if (saved && saved.puzzle) {
     elapsedMs = saved.elapsedMs || 0;

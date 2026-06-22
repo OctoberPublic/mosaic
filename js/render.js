@@ -4,7 +4,7 @@ import { UNKNOWN, FILLED, EMPTY } from './solver.js';
 const COLORS = {
   bg: '#0f1117',
   cellUnknown: '#e9edf3',
-  cellFilled: '#1b2430',
+  cellFilled: '#3576e6',
   cellEmpty: '#cfd6e0',
   grid: '#b8c0cc',
   gridMajor: '#7f8a9c',
@@ -13,7 +13,7 @@ const COLORS = {
   clueError: '#e53935',
   clueErrorOnFilled: '#ff8a80',
   cross: '#9aa4b2',
-  clearFilled: '#10203a',
+  clearFilled: '#3b82f6',
   clearEmpty: '#f4f7fb',
 };
 
@@ -32,7 +32,7 @@ export class Renderer {
     this.originX = 0; this.originY = 0; // セル(0,0)左上のCSS座標
     this.minScale = 4; this.maxScale = 64;
 
-    this.panMode = false;
+    this.activeTool = null; // null=移動 / 'fill' / 'cross'(ボタン長押し中のみ)
     this._pointers = new Map();
     this._painting = false;
     this._lastCell = -1;
@@ -53,7 +53,7 @@ export class Renderer {
   }
   setMarks(marks) { this.marks = marks; }
   setErrors(errors) { this.errors = errors; }
-  setPanMode(on) { this.panMode = on; }
+  setActiveTool(tool) { this.activeTool = tool || null; }
   setRevealClear(on) { this.revealClear = on; this.requestDraw(); }
 
   resize() {
@@ -121,7 +121,7 @@ export class Renderer {
   }
 
   _onDown(e) {
-    this.canvas.setPointerCapture?.(e.pointerId);
+    try { this.canvas.setPointerCapture(e.pointerId); } catch (_) {}
     const p = this._clientToCss(e);
     this._pointers.set(e.pointerId, p);
 
@@ -132,14 +132,18 @@ export class Renderer {
       return;
     }
 
-    // マウス右ボタンは「×」塗り、左/タッチは現在ツール
+    // 塗る/印ボタンを押している間(activeTool)だけ塗る。マウス右ボタンは常に「×」。
+    // どちらでもなければ1本指スワイプで盤面移動。
     const useCross = e.pointerType === 'mouse' && e.button === 2;
-    if (this.panMode) { this._panning = true; this._panLast = p; return; }
-
-    const cell = this._cssToCell(p.x, p.y);
-    this._painting = true;
-    this._lastCell = cell;
-    if (cell >= 0) this.handlers.onPaintStart?.(cell, useCross);
+    if (this.activeTool || useCross) {
+      const cell = this._cssToCell(p.x, p.y);
+      this._painting = true;
+      this._lastCell = cell;
+      if (cell >= 0) this.handlers.onPaintStart?.(cell, useCross || this.activeTool === 'cross');
+    } else {
+      this._panning = true;
+      this._panLast = p;
+    }
   }
 
   _onMove(e) {
