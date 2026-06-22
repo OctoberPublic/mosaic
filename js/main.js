@@ -168,7 +168,7 @@ function buildDiffOptions() {
   const descs = {
     normal: '30×30 長方形 / ヒント多め',
     hard: '35×35 長方形 / ヒント少なめ',
-    oni: '40×40 いびつな形 / 最小ヒント',
+    oni: '30〜40 いびつな形 / 最小ヒント',
   };
   for (const key of Object.keys(DIFFICULTY)) {
     const d = document.createElement('div');

@@ -9,10 +9,11 @@ import { prepare, solveActive } from './solver.js';
 //   keepFraction : 最小化後に戻すヒントの割合(大きいほど簡単)
 //   timeBudgetMs : 最小化の時間上限
 //   maxAttempts  : 解ける盤面が出るまでの再生成回数上限
+// size 固定 / もしくは sizeMin..sizeMax の範囲からランダムに選ぶ
 export const DIFFICULTY = {
   normal: { label: 'ふつう',     size: 30, irregular: false, density: 0.50, maxTier: 2, keepFraction: 0.55, timeBudgetMs: 5000, maxAttempts: 12 },
   hard:   { label: 'むずかしい', size: 35, irregular: false, density: 0.50, maxTier: 2, keepFraction: 0.25, timeBudgetMs: 7000, maxAttempts: 12 },
-  oni:    { label: '鬼',         size: 40, irregular: true,  density: 0.50, maxTier: 2, keepFraction: 0.00, timeBudgetMs: 10000, maxAttempts: 14 },
+  oni:    { label: '鬼', sizeMin: 30, sizeMax: 40, irregular: true, density: 0.50, maxTier: 2, keepFraction: 0.00, timeBudgetMs: 10000, maxAttempts: 14 },
 };
 
 // 再現可能な乱数 (mulberry32)
@@ -106,7 +107,11 @@ export function generatePuzzle(opts = {}) {
   let seed = opts.seed;
   if (seed === undefined) seed = (Math.random() * 4294967296) >>> 0;
   const rng = makeRng(seed);
-  const width = cfg.size, height = cfg.size;
+  // 鬼などサイズ範囲が指定されていれば 30〜40 のように毎回変える
+  const size = cfg.sizeMin != null
+    ? cfg.sizeMin + ((rng() * (cfg.sizeMax - cfg.sizeMin + 1)) | 0)
+    : cfg.size;
+  const width = size, height = size;
 
   let fallback = null;
   for (let attempt = 0; attempt < cfg.maxAttempts; attempt++) {
