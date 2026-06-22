@@ -264,16 +264,7 @@ export class Renderer {
         else ctx.fillStyle = COLORS.cellUnknown;
         ctx.fillRect(px, py, scale, scale);
 
-        // ×印
-        if (m === EMPTY && scale >= 9) {
-          ctx.strokeStyle = COLORS.cross;
-          ctx.lineWidth = Math.max(1, scale * 0.06);
-          const pad = scale * 0.28;
-          ctx.beginPath();
-          ctx.moveTo(px + pad, py + pad); ctx.lineTo(px + scale - pad, py + scale - pad);
-          ctx.moveTo(px + scale - pad, py + pad); ctx.lineTo(px + pad, py + scale - pad);
-          ctx.stroke();
-        }
+        // 印マスは灰色の塗りのみ(×印は描かない)
 
         // ヒント数字
         if (showNum) {
