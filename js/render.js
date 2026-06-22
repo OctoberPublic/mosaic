@@ -285,38 +285,48 @@ export class Renderer {
   }
 
   _drawGrid(ctx, x0, y0, x1, y1, scale) {
-    const W = this.width, H = this.height;
-    // 細グリッド
-    ctx.strokeStyle = COLORS.grid;
-    ctx.lineWidth = 1;
-    ctx.beginPath();
-    for (let x = x0; x <= x1; x++) {
-      const px = Math.round(this.originX + x * scale) + 0.5;
-      ctx.moveTo(px, this.originY + y0 * scale);
-      ctx.lineTo(px, this.originY + y1 * scale);
-    }
-    for (let y = y0; y <= y1; y++) {
-      const py = Math.round(this.originY + y * scale) + 0.5;
-      ctx.moveTo(this.originX + x0 * scale, py);
-      ctx.lineTo(this.originX + x1 * scale, py);
-    }
-    ctx.stroke();
-    // 5マスごとの太線
-    ctx.strokeStyle = COLORS.gridMajor;
-    ctx.lineWidth = 1.5;
-    ctx.beginPath();
-    for (let x = x0; x <= x1; x++) {
-      if (x % 5 !== 0 && x !== W) continue;
-      const px = Math.round(this.originX + x * scale) + 0.5;
-      ctx.moveTo(px, this.originY + y0 * scale);
-      ctx.lineTo(px, this.originY + y1 * scale);
-    }
-    for (let y = y0; y <= y1; y++) {
-      if (y % 5 !== 0 && y !== H) continue;
-      const py = Math.round(this.originY + y * scale) + 0.5;
-      ctx.moveTo(this.originX + x0 * scale, py);
-      ctx.lineTo(this.originX + x1 * scale, py);
-    }
-    ctx.stroke();
+    const W = this.width, H = this.height, mask = this.mask;
+    const ox = this.originX, oy = this.originY;
+    const inReg = (cx, cy) => cx >= 0 && cy >= 0 && cx < W && cy < H && !!mask[cy * W + cx];
+
+    // 領域内マスに接する罫線だけを描く(領域外どうしの境界は描かず背景に溶け込ませる)。
+    // 連続する区間はまとめて1本の線にして軽量化。isMajor=true で5マスごとの太線。
+    const strokeLines = (isMajor) => {
+      ctx.beginPath();
+      // 縦線(列境界 x)
+      for (let x = x0; x <= x1; x++) {
+        if ((x % 5 === 0) !== isMajor) continue;
+        const px = Math.round(ox + x * scale) + 0.5;
+        let run = -1;
+        for (let y = y0; y <= y1; y++) {
+          const present = y < y1 && (inReg(x - 1, y) || inReg(x, y));
+          if (present && run < 0) run = y;
+          else if (!present && run >= 0) {
+            ctx.moveTo(px, oy + run * scale);
+            ctx.lineTo(px, oy + y * scale);
+            run = -1;
+          }
+        }
+      }
+      // 横線(行境界 y)
+      for (let y = y0; y <= y1; y++) {
+        if ((y % 5 === 0) !== isMajor) continue;
+        const py = Math.round(oy + y * scale) + 0.5;
+        let run = -1;
+        for (let x = x0; x <= x1; x++) {
+          const present = x < x1 && (inReg(x, y - 1) || inReg(x, y));
+          if (present && run < 0) run = x;
+          else if (!present && run >= 0) {
+            ctx.moveTo(ox + run * scale, py);
+            ctx.lineTo(ox + x * scale, py);
+            run = -1;
+          }
+        }
+      }
+      ctx.stroke();
+    };
+
+    ctx.strokeStyle = COLORS.grid; ctx.lineWidth = 1; strokeLines(false);
+    ctx.strokeStyle = COLORS.gridMajor; ctx.lineWidth = 1.5; strokeLines(true);
   }
 }
