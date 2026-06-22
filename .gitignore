@@ -1,0 +1,5 @@
+# 検証で生成する一時ファイル
+tools/shot-*.png
+*.log
+.DS_Store
+Thumbs.db

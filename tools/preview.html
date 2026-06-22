@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>preview</title>
+<style>
+  body { margin:0; background:#0f1117; }
+  #c { width:400px; height:640px; display:block; }
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+<script type="module">
+import { Renderer } from '../js/render.js';
+import { Game } from '../js/game.js';
+import { FILLED, EMPTY } from '../js/solver.js';
+
+const W = 16, H = 16, N = W * H;
+const mask = new Uint8Array(N).fill(1);
+const solution = new Uint8Array(N);
+// 中央に塗りつぶしの四角(3..12)
+for (let y = 3; y <= 12; y++) for (let x = 3; x <= 12; x++) solution[y * W + x] = 1;
+// 内側をくり抜いて枠にする
+for (let y = 6; y <= 9; y++) for (let x = 6; x <= 9; x++) solution[y * W + x] = 0;
+
+const clues = new Int8Array(N).fill(-1);
+for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+  let c = 0;
+  for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+    const nx = x + dx, ny = y + dy;
+    if (nx < 0 || ny < 0 || nx >= W || ny >= H) continue;
+    if (solution[ny * W + nx]) c++;
+  }
+  clues[y * W + x] = c;
+}
+
+const puzzle = { width: W, height: H, mask, clues, solution, difficulty: 'normal' };
+
+const canvas = document.getElementById('c');
+const renderer = new Renderer(canvas, {
+  onPaintStart: (cell, useCross) => game.startPaint(cell, useCross),
+  onPaintMove: (cell) => game.paintMove(cell),
+  onPaintEnd: () => game.endPaint(),
+});
+const game = new Game({ onChange: () => renderer.requestDraw(), onClear: () => {} });
+game.setPuzzle(puzzle);
+renderer.setPuzzle(puzzle);
+renderer.setMarks(game.marks);
+renderer.setErrors(game.errors);
+
+// いくつか正しく塗る
+game.setTool('fill');
+for (let y = 3; y <= 12; y++) { game.tap(y * W + 3, false); game.tap(y * W + 12, false); }
+for (let x = 4; x <= 11; x++) { game.tap(3 * W + x, false); }
+// ×印をいくつか
+game.setTool('cross');
+for (let x = 0; x < W; x++) game.tap(0 * W + x, false);
+// わざとエラー(到達不能)を作る: あるヒントの近傍を×で潰す
+game.tap(15 * W + 7, false); game.tap(15 * W + 8, false); game.tap(14 * W + 7, false);
+
+renderer.requestDraw();
+requestAnimationFrame(() => requestAnimationFrame(() => { document.title = 'READY'; }));
+</script>
+</body>
+</html>

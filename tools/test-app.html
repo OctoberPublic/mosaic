@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8" />
+<title>test-app</title>
+<style>
+  body { margin:0; background:#0f1117; color:#e9edf3; font-family:system-ui,sans-serif; }
+  #status { padding:6px 10px; font-size:13px; }
+  #c { width:400px; height:560px; display:block; }
+</style>
+</head>
+<body>
+<div id="status">starting…</div>
+<canvas id="c"></canvas>
+<script type="module">
+import { Renderer } from '../js/render.js';
+import { Game } from '../js/game.js';
+import { generatePuzzle } from '../js/generator.js';
+import { PuzzleSource } from '../js/puzzleSource.js';
+
+const statusEl = document.getElementById('status');
+const log = (s) => { statusEl.textContent = s; };
+
+try {
+  // メインスレッドで normal を生成(確実に盤面を出す)
+  const t0 = performance.now();
+  const puzzle = generatePuzzle({ difficulty: 'normal', seed: 42 });
+  const genMs = Math.round(performance.now() - t0);
+
+  const canvas = document.getElementById('c');
+  const renderer = new Renderer(canvas, {
+    onPaintStart: (cell, useCross) => game.startPaint(cell, useCross),
+    onPaintMove: (cell) => game.paintMove(cell),
+    onPaintEnd: () => game.endPaint(),
+  });
+  const game = new Game({ onChange: () => renderer.requestDraw(), onClear: () => {} });
+  game.setPuzzle(puzzle);
+  renderer.setPuzzle(puzzle);
+  renderer.setMarks(game.marks);
+  renderer.setErrors(game.errors);
+
+  // 解の一部を塗ってみる
+  game.setTool('fill');
+  let painted = 0;
+  for (let i = 0; i < puzzle.mask.length && painted < 120; i++) {
+    if (puzzle.mask[i] && puzzle.solution[i]) { game.tap(i, false); painted++; }
+  }
+  renderer.requestDraw();
+  log(`main-gen ${puzzle.width}x${puzzle.height} hints=${puzzle.shownCount} ${genMs}ms / worker: 生成中…`);
+
+  // Worker 経由の生成も確認
+  const src = new PuzzleSource();
+  src.next('normal').then((p) => {
+    log(`main-gen ${genMs}ms OK / WORKER OK ${p.width}x${p.height} hints=${p.shownCount}`);
+    document.title = 'READY-WORKER';
+  }).catch((e) => {
+    log('WORKER FAIL: ' + e.message);
+    document.title = 'READY-NOWORKER';
+  });
+
+  document.title = 'READY';
+} catch (e) {
+  log('ERROR: ' + (e && e.stack || e));
+  document.title = 'ERROR';
+}
+</script>
+</body>
+</html>

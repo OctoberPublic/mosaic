@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>マイ・メガモザイク</title>
+  <meta name="theme-color" content="#0f1117" />
+  <meta name="description" content="Fill-a-Pix(モザイク)ロジックパズル。数字の通りにマスを塗って絵を完成させよう。" />
+
+  <!-- PWA / iOS ホーム画面 -->
+  <link rel="manifest" href="manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="メガモザイク" />
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+  <link rel="icon" href="icons/icon-192.png" />
+
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body>
+  <div id="app">
+    <header id="topbar">
+      <button id="menuBtn" class="ic" aria-label="メニュー">☰</button>
+      <div class="title-wrap">
+        <span id="diffLabel">鬼</span>
+        <span id="timer">00:00</span>
+      </div>
+      <button id="statsBtn" class="ic" aria-label="統計">📊</button>
+    </header>
+
+    <div id="boardWrap">
+      <canvas id="board"></canvas>
+
+      <div id="loading" class="overlay">
+        <div class="spinner"></div>
+        <p id="loadingText">パズルを生成中…</p>
+      </div>
+
+      <div id="clear" class="overlay hidden">
+        <div class="clear-card">
+          <div class="clear-emoji">🎉</div>
+          <h2>クリア！</h2>
+          <p id="clearInfo"></p>
+          <button id="nextBtn" class="btn primary">次の問題へ</button>
+        </div>
+      </div>
+    </div>
+
+    <footer id="toolbar">
+      <button id="toolFill" class="tool active">■<small>塗る</small></button>
+      <button id="toolCross" class="tool">✕<small>印</small></button>
+      <button id="panBtn" class="tool">✋<small>移動</small></button>
+      <button id="undoBtn" class="tool">↶<small>戻す</small></button>
+      <button id="redoBtn" class="tool">↷<small>進む</small></button>
+      <button id="hintBtn" class="tool">💡<small>ヒント</small></button>
+      <button id="zoomOutBtn" class="tool">−<small>縮小</small></button>
+      <button id="zoomInBtn" class="tool">＋<small>拡大</small></button>
+      <button id="fitBtn" class="tool">⤢<small>全体</small></button>
+    </footer>
+  </div>
+
+  <!-- メニュー(難易度・新規・リセット) -->
+  <div id="menu" class="modal hidden">
+    <div class="modal-card">
+      <h2>メニュー</h2>
+      <h3>難易度</h3>
+      <div id="diffOptions" class="diff-options"></div>
+      <div class="modal-actions">
+        <button id="newBtn" class="btn primary">この難易度で新しい問題</button>
+        <button id="resetBtn" class="btn">今の問題をリセット</button>
+        <button id="closeMenuBtn" class="btn ghost">閉じる</button>
+      </div>
+      <p class="hint-text">操作: 1本指でドラッグ塗り / 2本指でズーム・移動。「移動」ボタンで1本指移動にも切替できます。</p>
+    </div>
+  </div>
+
+  <!-- 統計 -->
+  <div id="statsModal" class="modal hidden">
+    <div class="modal-card">
+      <h2>統計</h2>
+      <dl class="stats">
+        <div><dt>総プレイ時間</dt><dd id="stPlay">-</dd></div>
+        <div><dt>プレイした問題数</dt><dd id="stPlayed">-</dd></div>
+        <div><dt>クリアした問題数</dt><dd id="stCleared">-</dd></div>
+        <div><dt>使ったヒント数</dt><dd id="stHints">-</dd></div>
+      </dl>
+      <div class="modal-actions">
+        <button id="closeStatsBtn" class="btn ghost">閉じる</button>
+      </div>
+    </div>
+  </div>
+
+  <script type="module" src="js/main.js"></script>
+</body>
+</html>
