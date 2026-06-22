@@ -6,7 +6,7 @@ import { DIFFICULTY } from './generator.js';
 import * as store from './storage.js';
 
 // アプリのバージョン(sw.js の CACHE と揃える。デプロイのたびに更新)
-const APP_VERSION = 'v12';
+const APP_VERSION = 'v13';
 
 const $ = (id) => document.getElementById(id);
 
@@ -18,7 +18,7 @@ const el = {
   clear: $('clear'), clearInfo: $('clearInfo'), nextBtn: $('nextBtn'),
   toolFill: $('toolFill'), toolCross: $('toolCross'),
   undoBtn: $('undoBtn'), redoBtn: $('redoBtn'), hintBtn: $('hintBtn'),
-  zoomOutBtn: $('zoomOutBtn'), zoomInBtn: $('zoomInBtn'), fitBtn: $('fitBtn'),
+  fixBtn: $('fixBtn'), fitBtn: $('fitBtn'),
   menu: $('menu'), diffOptions: $('diffOptions'),
   newBtn: $('newBtn'), resetBtn: $('resetBtn'), closeMenuBtn: $('closeMenuBtn'),
   statsModal: $('statsModal'),
@@ -36,7 +36,7 @@ let selectedDiff = settings.difficulty;
 const source = new PuzzleSource();
 
 const game = new Game({
-  onChange: () => { renderer.requestDraw(); updateUndoRedo(); scheduleSave(); },
+  onChange: () => { renderer.requestDraw(); updateUndoRedo(); updateFixButton(); scheduleSave(); },
   onClear: () => onClear(),
 });
 
@@ -67,6 +67,10 @@ function updateUndoRedo() {
   el.undoBtn.disabled = !game.canUndo();
   el.redoBtn.disabled = !game.canRedo();
 }
+// 間違いがあるときだけ「直す」(周辺5x5リセット)ボタンを表示
+function updateFixButton() {
+  el.fixBtn.classList.toggle('invisible', !game.hasErrors());
+}
 
 function applyPuzzleToView(puzzle, marks) {
   game.setPuzzle(puzzle, marks);
@@ -77,6 +81,7 @@ function applyPuzzleToView(puzzle, marks) {
   renderer.setRevealClear(false);
   el.diffLabel.textContent = (DIFFICULTY[puzzle.difficulty] || {}).label || puzzle.difficulty;
   updateUndoRedo();
+  updateFixButton();
   renderer.requestDraw();
 }
 
@@ -172,9 +177,9 @@ function closeMenu() { el.menu.classList.add('hidden'); }
 function buildDiffOptions() {
   el.diffOptions.innerHTML = '';
   const descs = {
-    normal: '30×30 長方形 / ヒント多め',
-    hard: '35×35 長方形 / ヒント少なめ',
-    oni: '30〜40 いびつな形 / 最小ヒント',
+    normal: '20〜30 長方形 / ヒント多め',
+    hard: '20〜35 長方形 / ヒント少なめ',
+    oni: '20〜40 いびつな形 / 最小ヒント',
   };
   for (const key of Object.keys(DIFFICULTY)) {
     const d = document.createElement('div');
@@ -205,8 +210,7 @@ el.hintBtn.addEventListener('click', () => {
   const cell = game.hint();
   if (cell >= 0) { stats.hints++; store.saveStats(stats); }
 });
-el.zoomInBtn.addEventListener('click', () => renderer.zoomBy(1.25));
-el.zoomOutBtn.addEventListener('click', () => renderer.zoomBy(1 / 1.25));
+el.fixBtn.addEventListener('click', () => { game.resetAroundErrors(); });
 el.fitBtn.addEventListener('click', () => renderer.fit());
 
 el.menuBtn.addEventListener('click', openMenu);

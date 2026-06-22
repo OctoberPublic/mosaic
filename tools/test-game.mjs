@@ -95,5 +95,19 @@ check('完了:エラーなし', !game.errors.some((e) => e === 1));
 game.tap(4, false); // 中央を消す(FILLED→UNKNOWN)
 check('1マス消すと中央ヒントの完了が解除', game.done[4] === 0);
 
+// 間違い周辺リセット(直す)
+game.setPuzzle(puzzle);
+check('初期は間違いなし', !game.hasErrors());
+game.setTool('cross');
+game.tap(1, false); game.tap(3, false); game.tap(4, false); // 角ヒント0を到達不能に
+check('間違い発生で hasErrors=true', game.hasErrors());
+const clearedN = game.resetAroundErrors();
+check('リセットでマスが消える', clearedN > 0);
+check('リセット後は間違いなし', !game.hasErrors());
+check('リセットでマークが未確定化', game.marks[1] === UNKNOWN && game.marks[3] === UNKNOWN && game.marks[4] === UNKNOWN);
+check('リセットはアンドゥ可能', game.canUndo());
+game.undo();
+check('アンドゥでリセット前に戻る', game.marks[1] === EMPTY && game.hasErrors());
+
 console.log(`\n${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

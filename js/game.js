@@ -192,6 +192,45 @@ export class Game {
     return target;
   }
 
+  // 間違い(赤いヒント)があるか
+  hasErrors() {
+    if (!this.errors) return false;
+    for (let i = 0; i < this.errors.length; i++) if (this.errors[i]) return true;
+    return false;
+  }
+
+  // 間違っているヒントを中心とした5x5マスを未確定に戻す(まとめて1操作)。
+  // 戻り値: クリアしたマス数
+  resetAroundErrors() {
+    const p = this.puzzle;
+    if (!p) return 0;
+    const W = p.width, H = p.height;
+    const N = this.marks.length;
+    const toClear = new Set();
+    for (let j = 0; j < N; j++) {
+      if (!this.errors[j]) continue;
+      const jx = j % W, jy = (j / W) | 0;
+      for (let dy = -2; dy <= 2; dy++) {
+        const ny = jy + dy; if (ny < 0 || ny >= H) continue;
+        for (let dx = -2; dx <= 2; dx++) {
+          const nx = jx + dx; if (nx < 0 || nx >= W) continue;
+          const i = ny * W + nx;
+          if (p.mask[i] && this.marks[i] !== UNKNOWN) toClear.add(i);
+        }
+      }
+    }
+    if (!toClear.size) return 0;
+    const stroke = [];
+    for (const i of toClear) {
+      stroke.push({ i, prev: this.marks[i], next: UNKNOWN });
+      this._setCell(i, UNKNOWN);
+    }
+    this.undoStack.push(stroke);
+    this.redoStack.length = 0;
+    this._afterChange();
+    return toClear.size;
+  }
+
   _afterChange() {
     this.handlers.onChange?.();
     if (!this.cleared && this.correctFills === this.solutionFills && this.wrongFills === 0) {

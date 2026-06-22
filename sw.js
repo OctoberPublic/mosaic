@@ -1,5 +1,5 @@
 // sw.js — オフライン対応の Service Worker(アプリシェルをキャッシュ)
-const CACHE = 'mega-mosaic-v12';
+const CACHE = 'mega-mosaic-v13';
 const ASSETS = [
   './',
   './index.html',

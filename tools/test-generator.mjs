@@ -45,5 +45,19 @@ for (const diff of Object.keys(DIFFICULTY)) {
   }
 }
 
+// 最低サイズ 20x20 の生成確認(全難易度)
+console.log('\n=== 最低サイズ 20x20 ===');
+for (const diff of Object.keys(DIFFICULTY)) {
+  for (let n = 0; n < 2; n++) {
+    const p = generatePuzzle({ difficulty: diff, seed: 5000 + n, size: 20 });
+    const res = solveLogical(p.width, p.height, p.mask, p.clues, DIFFICULTY[diff].maxTier);
+    const logical = res.status === 'solved' && gridMatchesSolution(res.grid, p.solution, p.mask);
+    const sols = countSolutions(p.width, p.height, p.mask, p.clues, 2, DIFFICULTY[diff].maxTier);
+    const ok = p.width === 20 && p.height === 20 && logical && sols === 1;
+    if (!ok) allOk = false;
+    console.log(`  ${diff} ${p.width}x${p.height} ヒント${p.shownCount} 論理:${logical ? 'OK' : 'NG'} 解:${sols} => ${ok ? 'PASS' : 'FAIL'}`);
+  }
+}
+
 console.log(`\n総合: ${allOk ? 'ALL PASS' : 'FAIL あり'}`);
 process.exit(allOk ? 0 : 1);
