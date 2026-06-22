@@ -28,11 +28,15 @@ await send('Page.addScriptToEvaluateOnNewDocument', {
 await send('Page.navigate', { url });
 await sleep(waitMs);
 
+const pre = process.argv[5];
+if (pre) { await send('Runtime.evaluate', { expression: pre }); await sleep(300); }
+
 const probe = `JSON.stringify({
   title: document.title,
   loadingHidden: (document.getElementById('loading')||{}).classList ? document.getElementById('loading').classList.contains('hidden') : null,
   diff: (document.getElementById('diffLabel')||{}).textContent || null,
   timer: (document.getElementById('timer')||{}).textContent || null,
+  appVersion: (document.getElementById('appVersion')||{}).textContent || null,
   errors: window.__errors || []
 })`;
 const r = await send('Runtime.evaluate', { expression: probe, returnByValue: true });

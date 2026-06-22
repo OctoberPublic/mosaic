@@ -5,6 +5,9 @@ import { PuzzleSource } from './puzzleSource.js';
 import { DIFFICULTY } from './generator.js';
 import * as store from './storage.js';
 
+// アプリのバージョン(sw.js の CACHE と揃える。デプロイのたびに更新)
+const APP_VERSION = 'v12';
+
 const $ = (id) => document.getElementById(id);
 
 const el = {
@@ -21,7 +24,10 @@ const el = {
   statsModal: $('statsModal'),
   stPlay: $('stPlay'), stPlayed: $('stPlayed'), stCleared: $('stCleared'), stHints: $('stHints'),
   closeStatsBtn: $('closeStatsBtn'),
+  appVersion: $('appVersion'),
 };
+
+if (el.appVersion) el.appVersion.textContent = APP_VERSION;
 
 let settings = store.loadSettings();
 let stats = store.loadStats();
