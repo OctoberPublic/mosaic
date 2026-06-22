@@ -48,15 +48,15 @@ renderer.setPuzzle(puzzle);
 renderer.setMarks(game.marks);
 renderer.setErrors(game.errors);
 
-// いくつか正しく塗る
+// 左上5x5を除いて全マスを正しく確定 → ほとんどのヒントが「完了(薄色)」になる
 game.setTool('fill');
-for (let y = 3; y <= 12; y++) { game.tap(y * W + 3, false); game.tap(y * W + 12, false); }
-for (let x = 4; x <= 11; x++) { game.tap(3 * W + x, false); }
-// ×印をいくつか
-game.setTool('cross');
-for (let x = 0; x < W; x++) game.tap(0 * W + x, false);
-// わざとエラー(到達不能)を作る: あるヒントの近傍を×で潰す
-game.tap(15 * W + 7, false); game.tap(15 * W + 8, false); game.tap(14 * W + 7, false);
+for (let i = 0; i < N; i++) {
+  if (!mask[i]) continue;
+  const x = i % W, y = (i / W) | 0;
+  if (x < 5 && y < 5) continue;          // 左上は未確定(通常色との比較用)
+  if (solution[i]) game.tap(i, false);   // 塗る → 完了なら薄い水色
+  else game.tap(i, true);                // × → 完了なら灰色
+}
 
 renderer.requestDraw();
 requestAnimationFrame(() => requestAnimationFrame(() => { document.title = 'READY'; }));

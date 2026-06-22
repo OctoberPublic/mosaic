@@ -40,6 +40,7 @@ game.setPuzzle(puzzle);
 
 check('初期 solutionFills=5', game.solutionFills === 5);
 check('初期はクリアでない', !game.isClear());
+check('初期は完了ヒントなし', !game.done.some((d) => d === 1));
 
 // エラー表示: セル0(角,ヒント値3)の近傍は 0,1,3,4。
 // 必要なマスを×で潰して到達不能にすると赤(エラー)になる。
@@ -77,6 +78,22 @@ check('ヒント連打でクリアできる', game.isClear());
 check('onClear が呼ばれた', cleared);
 check('correctFills == solutionFills', game.correctFills === game.solutionFills);
 check('wrongFills == 0', game.wrongFills === 0);
+
+// 完了(done)状態: 全マスを正しく確定させると全ヒントが完了になる
+game.setPuzzle(puzzle);
+check('再初期化で完了なし', !game.done.some((d) => d === 1));
+game.setTool('fill');
+for (let i = 0; i < 9; i++) {
+  if (puzzle.solution[i]) game.tap(i, false); // 塗る
+  else game.tap(i, true);                     // ×
+}
+check('完了:中央ヒント(塗りマス)が完了', game.done[4] === 1 && game.marks[4] === FILLED);
+check('完了:角ヒント(印マス)が完了', game.done[0] === 1 && game.marks[0] === EMPTY);
+check('完了:全ヒントが完了', game.done.every((d, i) => puzzle.clues[i] < 0 || d === 1));
+check('完了:エラーなし', !game.errors.some((e) => e === 1));
+// 1マス消すと、その周囲のヒントは完了解除
+game.tap(4, false); // 中央を消す(FILLED→UNKNOWN)
+check('1マス消すと中央ヒントの完了が解除', game.done[4] === 0);
 
 console.log(`\n${pass} pass / ${fail} fail`);
 process.exit(fail ? 1 : 0);

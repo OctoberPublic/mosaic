@@ -67,6 +67,7 @@ function applyPuzzleToView(puzzle, marks) {
   renderer.setPuzzle(puzzle);
   renderer.setMarks(game.marks);
   renderer.setErrors(game.errors);
+  renderer.setDone(game.done);
   renderer.setRevealClear(false);
   el.diffLabel.textContent = (DIFFICULTY[puzzle.difficulty] || {}).label || puzzle.difficulty;
   updateUndoRedo();

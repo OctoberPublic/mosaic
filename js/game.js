@@ -7,6 +7,7 @@ export class Game {
     this.puzzle = null;
     this.marks = null;
     this.errors = null;
+    this.done = null; // 1ならそのヒントの3x3が埋まり満たされている
     this.tool = 'fill'; // 'fill' | 'cross'
 
     this.undoStack = [];
@@ -28,6 +29,7 @@ export class Game {
     const N = puzzle.width * puzzle.height;
     this.marks = marks && marks.length === N ? marks : new Int8Array(N);
     this.errors = new Uint8Array(N);
+    this.done = new Uint8Array(N);
     this.undoStack = [];
     this.redoStack = [];
     this._stroke = null;
@@ -48,15 +50,17 @@ export class Game {
     this.solutionFills = sFills;
     this.correctFills = correct;
     this.wrongFills = wrong;
-    // 全ヒントのエラー再計算
+    // 全ヒントのエラー/完了を再計算
     for (let i = 0; i < this.marks.length; i++) {
-      if (p.mask[i] && p.clues[i] >= 0) this.errors[i] = this._clueViolated(i) ? 1 : 0;
-      else this.errors[i] = 0;
+      if (p.mask[i] && p.clues[i] >= 0) this._recalcClue(i);
+      else { this.errors[i] = 0; this.done[i] = 0; }
     }
   }
 
-  // ヒント j が現在のマークと矛盾しているか
-  _clueViolated(j) {
+  // ヒント j の状態(エラー/完了)を再計算する。
+  // エラー: 塗り過多 or 残り空白で到達不能。
+  // 完了 : 3x3が全て確定(未確定なし)かつ満たされている。
+  _recalcClue(j) {
     const p = this.puzzle;
     const v = p.clues[j];
     const W = p.width, H = p.height;
@@ -73,7 +77,9 @@ export class Game {
         else if (m === UNKNOWN) pu++;
       }
     }
-    return pf > v || pf + pu < v;
+    const err = pf > v || pf + pu < v;
+    this.errors[j] = err ? 1 : 0;
+    this.done[j] = (!err && pu === 0) ? 1 : 0;
   }
 
   _updateErrorsAround(i) {
@@ -85,7 +91,7 @@ export class Game {
       for (let dx = -1; dx <= 1; dx++) {
         const nx = ix + dx; if (nx < 0 || nx >= W) continue;
         const j = ny * W + nx;
-        if (p.mask[j] && p.clues[j] >= 0) this.errors[j] = this._clueViolated(j) ? 1 : 0;
+        if (p.mask[j] && p.clues[j] >= 0) this._recalcClue(j);
       }
     }
   }

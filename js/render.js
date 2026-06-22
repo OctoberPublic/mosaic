@@ -12,6 +12,8 @@ const COLORS = {
   clueOnFilled: '#eef2f8',
   clueError: '#e53935',
   clueErrorOnFilled: '#ff8a80',
+  clueDoneOnFilled: '#bfe0ff', // 完了: 塗りマスの数字(薄い水色)
+  clueDoneEmpty: '#808a99',    // 完了: 印マスの数字(灰色)
   cross: '#9aa4b2',
   clearFilled: '#3b82f6',
   clearEmpty: '#f4f7fb',
@@ -25,7 +27,7 @@ export class Renderer {
 
     this.width = 0; this.height = 0;
     this.mask = null; this.marks = null; this.clues = null;
-    this.errors = null; this.solution = null;
+    this.errors = null; this.done = null; this.solution = null;
     this.revealClear = false;
 
     this.scale = 16;       // 1セルのCSSピクセル
@@ -53,6 +55,7 @@ export class Renderer {
   }
   setMarks(marks) { this.marks = marks; }
   setErrors(errors) { this.errors = errors; }
+  setDone(done) { this.done = done; }
   setActiveTool(tool) { this.activeTool = tool || null; }
   setRevealClear(on) { this.revealClear = on; this.requestDraw(); }
 
@@ -277,8 +280,15 @@ export class Renderer {
           const v = this.clues[i];
           if (v >= 0) {
             const err = this.errors && this.errors[i];
-            if (m === FILLED) ctx.fillStyle = err ? COLORS.clueErrorOnFilled : COLORS.clueOnFilled;
-            else ctx.fillStyle = err ? COLORS.clueError : COLORS.clue;
+            const done = this.done && this.done[i];
+            if (err) {
+              ctx.fillStyle = m === FILLED ? COLORS.clueErrorOnFilled : COLORS.clueError;
+            } else if (done) {
+              // 3x3が埋まり満たされたヒントは薄く表示
+              ctx.fillStyle = m === FILLED ? COLORS.clueDoneOnFilled : COLORS.clueDoneEmpty;
+            } else {
+              ctx.fillStyle = m === FILLED ? COLORS.clueOnFilled : COLORS.clue;
+            }
             ctx.fillText(String(v), px + scale / 2, py + scale / 2 + scale * 0.04);
           }
         }
