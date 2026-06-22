@@ -127,6 +127,17 @@ html, body {
 .hint-text { color: var(--muted); font-size: 12px; margin-top: 14px; line-height: 1.5; }
 .version-text { color: var(--muted); font-size: 11px; text-align: right; margin: 10px 0 0; }
 
+.suspended-list { display: flex; flex-direction: column; gap: 8px; }
+.suspended-list .empty { color: var(--muted); font-size: 13px; margin: 2px 0 4px; }
+.susp-item {
+  display: flex; align-items: center; justify-content: space-between; gap: 8px;
+  padding: 10px 12px; background: var(--panel2); border: 1px solid var(--line); border-radius: 10px;
+}
+.susp-title { font-weight: 700; font-size: 14px; }
+.susp-sub { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.susp-actions { display: flex; gap: 6px; flex-shrink: 0; }
+.btn.small { padding: 9px 12px; font-size: 13px; border-radius: 8px; }
+
 .stats { display: flex; flex-direction: column; gap: 10px; margin: 0; }
 .stats > div { display: flex; align-items: baseline; justify-content: space-between;
   border-bottom: 1px solid var(--line); padding-bottom: 8px; }

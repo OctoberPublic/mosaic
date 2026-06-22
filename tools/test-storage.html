@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head><meta charset="UTF-8" /><title>test-storage</title></head>
+<body>
+<div id="status">running…</div>
+<script type="module">
+import * as store from '../js/storage.js';
+
+const res = [];
+const check = (n, c) => res.push((c ? 'PASS ' : 'FAIL ') + n);
+
+// テスト用パズル
+const W = 6, H = 6, N = 36;
+const mask = new Uint8Array(N).fill(1);
+const solution = new Uint8Array(N);
+for (let i = 0; i < N; i++) solution[i] = (i % 3 === 0) ? 1 : 0;
+const clues = new Int8Array(N).fill(2);
+const marks = new Int8Array(N);
+marks[0] = 1; marks[1] = 2; marks[5] = 1;
+const puzzle = { width: W, height: H, mask, clues, solution, difficulty: 'oni', seed: 123, shownCount: 20 };
+
+// encode/decode 往復
+const enc = store.encodeGame({ id: 'g1', puzzle, marks, elapsedMs: 65000, savedAt: 1700000000000, progress: 42 });
+const dec = store.decodeGame(enc);
+check('decode: 寸法一致', dec.puzzle.width === W && dec.puzzle.height === H);
+check('decode: difficulty一致', dec.puzzle.difficulty === 'oni');
+check('decode: elapsed一致', dec.elapsedMs === 65000);
+check('decode: progress一致', dec.progress === 42);
+let marksOk = true;
+for (let i = 0; i < N; i++) if (dec.marks[i] !== marks[i]) marksOk = false;
+check('decode: marks一致', marksOk);
+let solOk = true;
+for (let i = 0; i < N; i++) if (dec.puzzle.solution[i] !== solution[i]) solOk = false;
+check('decode: solution一致', solOk);
+let clueOk = true;
+for (let i = 0; i < N; i++) if (dec.puzzle.clues[i] !== clues[i]) clueOk = false;
+check('decode: clues一致', clueOk);
+
+// 中断一覧
+store.saveSuspended([]); // クリア
+store.suspendGame({ id: 'a', puzzle, marks, elapsedMs: 1000, savedAt: 111, progress: 10 });
+store.suspendGame({ id: 'b', puzzle, marks, elapsedMs: 2000, savedAt: 222, progress: 20 });
+let arr = store.loadSuspended();
+check('一覧: 2件', arr.length === 2);
+check('一覧: 新しいものが先頭(b)', arr[0].id === 'b');
+// 同一idは置き換え(重複しない)
+store.suspendGame({ id: 'a', puzzle, marks, elapsedMs: 3000, savedAt: 333, progress: 30 });
+arr = store.loadSuspended();
+check('一覧: 同一idは重複しない(2件)', arr.length === 2);
+check('一覧: aが更新され先頭', arr[0].id === 'a' && arr[0].elapsedMs === 3000);
+// 取得・削除
+check('getSuspended(b) 取得', store.getSuspended('b') !== null);
+store.removeSuspended('b');
+arr = store.loadSuspended();
+check('removeSuspended後 1件', arr.length === 1 && arr[0].id === 'a');
+// 退避したものを decode して復元できる
+const r = store.decodeGame(store.getSuspended('a'));
+check('一覧から復元: marks一致', r.marks[0] === 1 && r.marks[1] === 2 && r.elapsedMs === 3000);
+
+store.saveSuspended([]); // 後片付け
+document.getElementById('status').textContent = res.join(' | ');
+document.title = res.every((x) => x.startsWith('PASS')) ? 'ALL-PASS' : 'HAS-FAIL';
+</script>
+</body>
+</html>

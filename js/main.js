@@ -6,7 +6,7 @@ import { DIFFICULTY } from './generator.js';
 import * as store from './storage.js';
 
 // アプリのバージョン(sw.js の CACHE と揃える。デプロイのたびに更新)
-const APP_VERSION = 'v13';
+const APP_VERSION = 'v14';
 
 const $ = (id) => document.getElementById(id);
 
@@ -20,7 +20,8 @@ const el = {
   undoBtn: $('undoBtn'), redoBtn: $('redoBtn'), hintBtn: $('hintBtn'),
   fixBtn: $('fixBtn'), fitBtn: $('fitBtn'),
   menu: $('menu'), diffOptions: $('diffOptions'),
-  newBtn: $('newBtn'), resetBtn: $('resetBtn'), closeMenuBtn: $('closeMenuBtn'),
+  newBtn: $('newBtn'), suspendBtn: $('suspendBtn'), resetBtn: $('resetBtn'), closeMenuBtn: $('closeMenuBtn'),
+  suspendedList: $('suspendedList'),
   statsModal: $('statsModal'),
   stPlay: $('stPlay'), stPlayed: $('stPlayed'), stCleared: $('stCleared'), stHints: $('stHints'),
   closeStatsBtn: $('closeStatsBtn'),
@@ -48,6 +49,7 @@ const renderer = new Renderer(el.board, {
 
 let elapsedMs = 0;
 let loading = false;
+let currentId = null;
 
 // ---- 表示ユーティリティ ----
 function fmtClock(ms) {
@@ -61,6 +63,19 @@ function fmtDuration(totalSec) {
   if (h > 0) return `${h}時間 ${m}分 ${s}秒`;
   if (m > 0) return `${m}分 ${s}秒`;
   return `${s}秒`;
+}
+function fmtDate(ms) {
+  if (!ms) return '';
+  const d = new Date(ms), p = (n) => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+function gameProgress() {
+  return game.solutionFills ? Math.round((100 * game.correctFills) / game.solutionFills) : 0;
+}
+function gameHasMarks() {
+  if (!game.marks) return false;
+  for (let i = 0; i < game.marks.length; i++) if (game.marks[i] !== 0) return true;
+  return false;
 }
 function updateTimer() { el.timer.textContent = fmtClock(elapsedMs); }
 function updateUndoRedo() {
@@ -93,7 +108,7 @@ function scheduleSave() {
 }
 function saveNow() {
   if (!game.puzzle) return;
-  store.saveGame({ puzzle: game.puzzle, marks: game.marks, elapsedMs });
+  store.saveGame({ id: currentId, puzzle: game.puzzle, marks: game.marks, elapsedMs, savedAt: Date.now(), progress: gameProgress() });
   store.saveStats(stats);
 }
 
@@ -103,6 +118,7 @@ async function startNewPuzzle(difficulty) {
   try {
     const puzzle = await source.next(difficulty);
     elapsedMs = 0;
+    currentId = store.genId();
     applyPuzzleToView(puzzle, null);
     stats.played++;
     store.saveStats(stats);
@@ -171,9 +187,72 @@ function bindHold(btn, tool) {
 function openMenu() {
   selectedDiff = game.puzzle ? game.puzzle.difficulty : settings.difficulty;
   buildDiffOptions();
+  renderSuspendedList();
   el.menu.classList.remove('hidden');
 }
 function closeMenu() { el.menu.classList.add('hidden'); }
+
+// --- 中断ゲーム ---
+// 今のゲームを一覧へ退避する(進行中で未クリアのときのみ)
+function stashCurrent() {
+  if (!game.puzzle || game.cleared || !gameHasMarks()) return;
+  store.suspendGame({ id: currentId || store.genId(), puzzle: game.puzzle, marks: game.marks, elapsedMs, savedAt: Date.now(), progress: gameProgress() });
+}
+// 中断して保存 → 新しい問題を開始
+function suspendCurrent() {
+  if (!game.puzzle) return;
+  store.suspendGame({ id: currentId || store.genId(), puzzle: game.puzzle, marks: game.marks, elapsedMs, savedAt: Date.now(), progress: gameProgress() });
+  closeMenu();
+  startNewPuzzle(settings.difficulty);
+}
+function resumeSuspended(id) {
+  const entry = store.getSuspended(id);
+  if (!entry) return;
+  stashCurrent();          // 今のゲームを失わないよう退避
+  const decoded = store.decodeGame(entry);
+  store.removeSuspended(id);
+  currentId = decoded.id || store.genId();
+  elapsedMs = decoded.elapsedMs || 0;
+  applyPuzzleToView(decoded.puzzle, decoded.marks);
+  updateTimer();
+  showLoading(false);
+  saveNow();
+  closeMenu();
+}
+function deleteSuspended(id) {
+  store.removeSuspended(id);
+  renderSuspendedList();
+}
+function renderSuspendedList() {
+  const arr = store.loadSuspended();
+  el.suspendedList.innerHTML = '';
+  if (!arr.length) {
+    el.suspendedList.innerHTML = '<p class="empty">中断中のゲームはありません</p>';
+    return;
+  }
+  for (const e of arr) {
+    const label = (DIFFICULTY[e.difficulty] || {}).label || e.difficulty;
+    const item = document.createElement('div');
+    item.className = 'susp-item';
+    const info = document.createElement('div');
+    info.className = 'susp-info';
+    info.innerHTML = `<div class="susp-title">${label} ${e.w}×${e.h}・${e.progress || 0}%</div>` +
+      `<div class="susp-sub">${fmtClock(e.elapsedMs)} ・ ${fmtDate(e.savedAt)}</div>`;
+    const actions = document.createElement('div');
+    actions.className = 'susp-actions';
+    const resume = document.createElement('button');
+    resume.className = 'btn small primary';
+    resume.textContent = '再開';
+    resume.addEventListener('click', () => resumeSuspended(e.id));
+    const del = document.createElement('button');
+    del.className = 'btn small ghost';
+    del.textContent = '削除';
+    del.addEventListener('click', () => deleteSuspended(e.id));
+    actions.append(resume, del);
+    item.append(info, actions);
+    el.suspendedList.appendChild(item);
+  }
+}
 function buildDiffOptions() {
   el.diffOptions.innerHTML = '';
   const descs = {
@@ -215,6 +294,7 @@ el.fitBtn.addEventListener('click', () => renderer.fit());
 
 el.menuBtn.addEventListener('click', openMenu);
 el.closeMenuBtn.addEventListener('click', closeMenu);
+el.suspendBtn.addEventListener('click', suspendCurrent);
 el.newBtn.addEventListener('click', () => {
   settings.difficulty = selectedDiff; store.saveSettings(settings);
   closeMenu();
@@ -250,6 +330,7 @@ function init() {
   const saved = store.loadGame();
   if (saved && saved.puzzle) {
     elapsedMs = saved.elapsedMs || 0;
+    currentId = saved.id || store.genId();
     applyPuzzleToView(saved.puzzle, saved.marks);
     updateTimer();
     showLoading(false);
