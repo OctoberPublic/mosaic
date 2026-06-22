@@ -12,7 +12,7 @@ const COLORS = {
   clueOnFilled: '#eef2f8',
   clueError: '#e53935',
   clueErrorOnFilled: '#ff8a80',
-  clueDoneOnFilled: '#7aa6f5', // 完了: 塗りマスの数字(塗りの青より暗くしない・少し明るい青)
+  clueDoneOnFilled: '#4280e9', // 完了: 塗りマスの数字(塗りの青よりほんの少しだけ明るい・見え辛いくらい)
   clueDoneEmpty: '#a8b0bd',    // 完了: 印マスの数字(薄い灰色)
   cross: '#9aa4b2',
   clearFilled: '#3b82f6',
