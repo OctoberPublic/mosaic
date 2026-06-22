@@ -12,8 +12,8 @@ const COLORS = {
   clueOnFilled: '#eef2f8',
   clueError: '#e53935',
   clueErrorOnFilled: '#ff8a80',
-  clueDoneOnFilled: '#bfe0ff', // 完了: 塗りマスの数字(薄い水色)
-  clueDoneEmpty: '#808a99',    // 完了: 印マスの数字(灰色)
+  clueDoneOnFilled: '#1a3f8c', // 完了: 塗りマスの数字(塗りの青に近い濃いめの青)
+  clueDoneEmpty: '#a8b0bd',    // 完了: 印マスの数字(薄い灰色)
   cross: '#9aa4b2',
   clearFilled: '#3b82f6',
   clearEmpty: '#f4f7fb',
